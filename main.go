@@ -16,7 +16,8 @@ const (
 )
 
 var (
-	re = regexp.MustCompile(`^/v2/`)
+	re               = regexp.MustCompile(`^/v2/`)
+	browserRedirects bool
 )
 
 type gcrConfig struct {
@@ -29,6 +30,7 @@ func main() {
 	if port == "" {
 		log.Fatal("PORT environment variable not specified")
 	}
+	browserRedirects = os.Getenv("DISABLE_BROWSER_REDIRECTS") == ""
 
 	gcrHost := defaultGCRHost
 	if v := os.Getenv("GCR_HOST"); v != "" {
@@ -39,16 +41,21 @@ func main() {
 		log.Fatal("GCR_PROJECT_ID environment variable not specified")
 	}
 
+	gcr := gcrConfig{
+		host:      gcrHost,
+		projectID: gcrProjectID,
+	}
+
 	proxy := &httputil.ReverseProxy{
 		Transport: roundTripper(rt),
-		Director: rewrite(gcrConfig{
-			host:      gcrHost,
-			projectID: gcrProjectID,
-		}),
+		Director:  rewriteRegistryV2(gcr),
 	}
 	addr := ":" + port
 	log.Printf("starting to listen on %s", addr)
 	http.Handle("/v2/", proxy)
+	if browserRedirects {
+		http.HandleFunc("/", browserRedirectHandler(gcr))
+	}
 	if err := http.ListenAndServe(addr, nil); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("listen error: %+v", err)
 	}
@@ -92,7 +99,7 @@ func rt(req *http.Request) (*http.Response, error) {
 	return resp, err
 }
 
-func rewrite(c gcrConfig) func(*http.Request) {
+func rewriteRegistryV2(c gcrConfig) func(*http.Request) {
 	return func(req *http.Request) {
 		u := req.URL.String()
 		req.Host = c.host
@@ -102,5 +109,14 @@ func rewrite(c gcrConfig) func(*http.Request) {
 			req.URL.Path = re.ReplaceAllString(req.URL.Path, fmt.Sprintf("/v2/%s/", c.projectID))
 		}
 		log.Printf("rewrote url: %s into %s", u, req.URL)
+	}
+}
+
+// browserRedirectHandler redirects a request like example.com/my-image to
+// gcr.io/my-image, which shows a public UI for browsing the registry.
+func browserRedirectHandler(c gcrConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		url := fmt.Sprintf("https://%s/%s%s", c.host, c.projectID, r.RequestURI)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 	}
 }
