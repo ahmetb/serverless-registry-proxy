@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -44,11 +46,21 @@ func main() {
 		projectID: gcrProjectID,
 	}
 
+	var authHeader string
+	if keyPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); keyPath != "" {
+		b, err := ioutil.ReadFile(keyPath)
+		if err != nil {
+			log.Fatalf("could not read key file from %s: %+v", keyPath, err)
+		}
+		log.Printf("using specified service account json key to authenticate proxied requests")
+		authHeader = "Basic " + base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("_json_key:%s", string(b))))
+	}
+
 	addr := ":" + port
 	if browserRedirects {
 		http.Handle("/", browserRedirectHandler(gcr))
 	}
-	http.Handle("/v2/", registryAPIMux(gcr))
+	http.Handle("/v2/", registryAPIMux(gcr, authHeader))
 	log.Printf("starting to listen on %s", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("listen error: %+v", err)
@@ -68,10 +80,12 @@ func browserRedirectHandler(c gcrConfig) http.HandlerFunc {
 // registryAPIMux returns a handler for Docker Registry v2 API requests
 // (/v2/). Request to path=/v2/ is handled-locally, other /v2/* requests are
 // proxied back to GCR endpoint.
-func registryAPIMux(c gcrConfig) http.HandlerFunc {
+func registryAPIMux(c gcrConfig, authHeader string) http.HandlerFunc {
 	reverseProxy := &httputil.ReverseProxy{
-		Transport: roundtripperFunc(gcrRoundtripper),
-		Director:  rewriteRegistryV2(c),
+		Director: rewriteRegistryV2URL(c),
+		Transport: &gcrRoundtripper{
+			authHeader: authHeader,
+		},
 	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -89,9 +103,9 @@ func handleRegistryAPIVersion(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "ok")
 }
 
-// rewriteRegistryV2 rewrites request.URL like /v2/* that come into the server
+// rewriteRegistryV2URL rewrites request.URL like /v2/* that come into the server
 // into https://[GCR_HOST]/v2/[PROJECT_ID]/*. It leaves /v2/ as is.
-func rewriteRegistryV2(c gcrConfig) func(*http.Request) {
+func rewriteRegistryV2URL(c gcrConfig) func(*http.Request) {
 	return func(req *http.Request) {
 		u := req.URL.String()
 		req.Host = c.host
@@ -104,12 +118,16 @@ func rewriteRegistryV2(c gcrConfig) func(*http.Request) {
 	}
 }
 
-type roundtripperFunc func(*http.Request) (*http.Response, error)
+type gcrRoundtripper struct {
+	authHeader string
+}
 
-func (f roundtripperFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
-
-func gcrRoundtripper(req *http.Request) (*http.Response, error) {
+func (g *gcrRoundtripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	log.Printf("request received. url=%s", req.URL)
+
+	if g.authHeader != "" {
+		req.Header.Set("Authorization", g.authHeader)
+	}
 
 	// TODO(ahmetb) remove after internal bug 129780113 is fixed.
 	req.Header.Set("accept", "*/*")

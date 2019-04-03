@@ -66,7 +66,27 @@ some 15-20 minutes to actually provision TLS certificates for your domain name.
 > ⚠️ This will make images in your private GCR registries publicly accessible on
 > the internet.
 
-// TODO(ahmetb): Add instructions once feature is ready.
+1. Create an [IAM Service
+   Account](https://cloud.google.com/iam/docs/creating-managing-service-accounts#creating_a_service_account).
+
+1. [Give it
+   permissions](https://cloud.google.com/container-registry/docs/access-control)
+   to access the GCR registry GCS Bucket. (Or simply, you can give it the
+   project-wide `Storage Object Viewer` role.)
+
+1. Copy your service account JSON key into the root of the repository as
+   `key.json`.
+
+1. (Not ideal, but whatever) Rebuild the docker image with your service account
+   key JSON in it. This will require editing `Dockerfile` to add `COPY` and
+   `ENV` directives like:
+
+       COPY key.json /app/key.json
+       ENV GOOGLE_APPLICATION_CREDENTIALS /app/key.json
+       ENTRYPOINT [...]
+
+   then refer to "Building" on how to build/push this new image and
+   refer to "Deploying" on how to deploy it.
 
 ### Advanced Customization
 
