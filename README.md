@@ -22,10 +22,10 @@ Then, push to a registry like:
 
     docker push gcr.io/[YOUR_PROJECT]/gcr-proxy
 
-## Deployment
+## Deploying (to Google Cloud XX)
 
-You can easily deploy this as a serverless container to [Google XX][YY]. This
-handles many of the heavy-lifting for you.
+You can easily deploy this as a serverless container to [Google Cloud XX][YY].
+This handles many of the heavy-lifting for you.
 
 1. Build and push docker images (previous step)
 1. Deploy to [Cloud XX][YY].
@@ -85,8 +85,7 @@ some 15-20 minutes to actually provision TLS certificates for your domain name.
        ENV GOOGLE_APPLICATION_CREDENTIALS /app/key.json
        ENTRYPOINT [...]
 
-   then refer to "Building" on how to build/push this new image and
-   refer to "Deploying" on how to deploy it.
+   You need to rebuild and deploy the updated image.
 
 ### Advanced Customization
 
