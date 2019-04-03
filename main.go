@@ -16,8 +16,7 @@ const (
 )
 
 var (
-	re               = regexp.MustCompile(`^/v2/`)
-	browserRedirects bool
+	re = regexp.MustCompile(`^/v2/`)
 )
 
 type gcrConfig struct {
@@ -30,7 +29,7 @@ func main() {
 	if port == "" {
 		log.Fatal("PORT environment variable not specified")
 	}
-	browserRedirects = os.Getenv("DISABLE_BROWSER_REDIRECTS") == ""
+	browserRedirects := os.Getenv("DISABLE_BROWSER_REDIRECTS") == ""
 
 	gcrHost := defaultGCRHost
 	if v := os.Getenv("GCR_HOST"); v != "" {
