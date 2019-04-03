@@ -89,15 +89,15 @@ some 15-20 minutes to actually provision TLS certificates for your domain name.
 
 ### Advanced Customization
 
-While deploying, you can specify additional environment variables for
-customization. These aren't mostly necessary.
+While deploying, you can set additional environment variables for customization:
 
 - **`GCR_HOST`**: defaults to `gcr.io`.
-
-- **`DISABLE_BROWSER_REDIRECTS`**: if you set this variable to any value, visiting
-  `example.com/image` on this browser will not redirect to
+- **`DISABLE_BROWSER_REDIRECTS`**: if you set this variable to any value,
+  visiting `example.com/image` on this browser will not redirect to
   `gcr.io/[PROJECT_ID/image` to allow your users to browse the image on GCR. If
   you're exposing private registries, you might want to set this variable.
+- **`GOOGLE_APPLICATION_CREDENTIALS`**: path to the IAM service account JSON key
+  file to expose the private GCR registries publicly.
 
 -----
 
