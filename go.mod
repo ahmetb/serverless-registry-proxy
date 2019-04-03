@@ -1,3 +1,3 @@
-module "github.com/ahmetb//Users/ahmetb/workspace/gcr-custom-domain"
+module gcr-proxy
 
 go 1.12
