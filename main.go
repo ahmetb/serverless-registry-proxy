@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -16,7 +17,8 @@ const (
 )
 
 var (
-	re = regexp.MustCompile(`^/v2/`)
+	re                 = regexp.MustCompile(`^/v2/`)
+	ctxKeyOriginalHost = struct{}{}
 )
 
 type gcrConfig struct {
@@ -59,12 +61,21 @@ func main() {
 	if browserRedirects {
 		http.Handle("/", browserRedirectHandler(gcr))
 	}
-	http.Handle("/v2/", registryAPIMux(gcr, authHeader))
+	http.Handle("/v2/", captureHostHeader(registryAPIMux(gcr, authHeader)))
 	log.Printf("starting to listen on %s", addr)
 	if err := http.ListenAndServe(addr, nil); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("listen error: %+v", err)
 	}
 	log.Printf("server shutdown successfully")
+}
+
+// captureHostHeader is a middleware to capture Host header in a context key.
+func captureHostHeader(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		ctx := context.WithValue(req.Context(), ctxKeyOriginalHost, req.Host)
+		req = req.WithContext(ctx)
+		next.ServeHTTP(rw, req.WithContext(ctx))
+	})
 }
 
 // browserRedirectHandler redirects a request like example.com/my-image to
@@ -129,7 +140,8 @@ func (g *gcrRoundtripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	}
 
 	if ua := req.Header.Get("user-agent"); ua != "" {
-		req.Header.Set("user-agent", "gcr-proxy/0.1 "+ua)
+		origHost := req.Context().Value(ctxKeyOriginalHost).(string)
+		req.Header.Set("user-agent", "gcr-proxy/0.1 customDomain/"+origHost+" "+ua)
 	}
 
 	// TODO(ahmetb) remove after internal bug 129780113 is fixed.
