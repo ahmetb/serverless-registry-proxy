@@ -128,6 +128,10 @@ func (g *gcrRoundtripper) RoundTrip(req *http.Request) (*http.Response, error) {
 		req.Header.Set("Authorization", g.authHeader)
 	}
 
+	if ua := req.Header.Get("user-agent"); ua != "" {
+		req.Header.Set("user-agent", "gcr-proxy/0.1 "+ua)
+	}
+
 	// TODO(ahmetb) remove after internal bug 129780113 is fixed.
 	req.Header.Set("accept", "*/*")
 
