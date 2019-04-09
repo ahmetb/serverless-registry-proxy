@@ -14,7 +14,7 @@ You can use this proxy, and instead offer your images ✨way fancier🎩, like:
 
 ## Building
 
-You can download the source code and build as a container image by running:
+Download the source code, and build as a container image:
 
     docker build --tag gcr.io/[YOUR_PROJECT]/gcr-proxy .
 
@@ -22,24 +22,24 @@ Then, push to a registry like:
 
     docker push gcr.io/[YOUR_PROJECT]/gcr-proxy
 
-## Deploying (to Google Cloud XX)
+## Deploying (to Google Cloud Run)
 
-You can easily deploy this as a serverless container to [Google Cloud XX][YY].
+You can easily deploy this as a serverless container to [Google Cloud Run][run].
 This handles many of the heavy-lifting for you.
 
 1. Build and push docker images (previous step)
-1. Deploy to [Cloud XX][YY].
+1. Deploy to [Cloud Run][run].
 1. Configure custom domain.
    1. Create domain mapping
    1. Verify domain ownership
    1. Update your DNS records
 1. Have fun!
 
-To deploy this to [Cloud XX][YY], replace `[PROJECT_ID]` with the project ID
+To deploy this to [Cloud Run][run], replace `[PROJECT_ID]` with the project ID
 of the GCR registry you want to expose publicly:
 
 ```sh
-gcloud alpha ZZ deploy \
+gcloud beta run deploy \
     --allow-unauthenticated \
     --image "[IMAGE]" \
     --set-env-vars "GCR_PROJECT_ID=[PROJECT_ID]"
@@ -52,14 +52,20 @@ gcloud alpha ZZ deploy \
 Then create a domain mapping by running (replace the `--domain` value):
 
 ```sh
-gcloud alpha ZZ domain-mappings create \
+gcloud beta run domain-mappings create \
     --service gcr-proxy \
     --domain reg.ahmet.dev
 ```
 
 This command will require verifying ownership of your domain name, and have you
-set DNS records for your domain to point to [Cloud XX][YY]. Then, it will take
+set DNS records for your domain to point to [Cloud Run][run]. Then, it will take
 some 15-20 minutes to actually provision TLS certificates for your domain name.
+
+### Deploying (elsewhere)
+
+...is much harder. You need to deploy the application to an environment like
+Kubernetes, obtain a valid TLS certificate for your domain name, and make it
+publicly accessible.
 
 ### Exposing private registries publicly
 
@@ -103,4 +109,4 @@ While deploying, you can set additional environment variables for customization:
 
 This is not an official Google project.
 
-[YY]: https://cloud.google.com/ZZ
+[run]: https://cloud.google.com/run
