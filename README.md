@@ -107,6 +107,6 @@ While deploying, you can set additional environment variables for customization:
 
 -----
 
-This is not an official Google project.
+This is not an official Google project. See [LICENSE](./LICENSE).
 
 [run]: https://cloud.google.com/run
