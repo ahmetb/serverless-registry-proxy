@@ -12,6 +12,8 @@ You can use this proxy, and instead offer your images ✨way fancier🎩, like:
 
     docker pull r.ahmet.dev/busybox
 
+![architecture diagram](./docs/img/diagram.svg)
+
 ## Building
 
 Download the source code, and build as a container image:
