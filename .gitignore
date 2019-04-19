@@ -1,1 +1,4 @@
 key.json
+*.pem
+*.crt
+*.cert

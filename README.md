@@ -24,7 +24,7 @@ Then, push to a registry like:
 
     docker push gcr.io/[YOUR_PROJECT]/gcr-proxy
 
-## Deploying (to Google Cloud Run)
+## Deploying (to Google Cloud Run) for GCR.io
 
 You can easily deploy this as a serverless container to [Google Cloud Run][run].
 This handles many of the heavy-lifting for you.
@@ -44,11 +44,11 @@ of the GCR registry you want to expose publicly:
 gcloud beta run deploy \
     --allow-unauthenticated \
     --image "[IMAGE]" \
-    --set-env-vars "GCR_PROJECT_ID=[PROJECT_ID]"
+    --set-env-vars "REGISTRY_HOST=gcr.io,REPO_PREFIX=[GCP_PROJECT_ID]"
 ```
 
-> This will deploy a proxy for your `gcr.io/[PROJECT_ID]` public registry. If
-> your GCR registry is private, see the section below on "Exposing private
+> This will deploy a proxy for your `gcr.io/[GCP_PROJECT_ID]` public registry.
+> If your GCR registry is private, see the section below on "Exposing private
 > registries".
 
 Then create a domain mapping by running (replace the `--domain` value):
@@ -69,7 +69,22 @@ some 15-20 minutes to actually provision TLS certificates for your domain name.
 Kubernetes, obtain a valid TLS certificate for your domain name, and make it
 publicly accessible.
 
-### Exposing private registries publicly
+### Using with other Docker Registries
+
+If you set `REGISTRY_HOST` and `REGISTRY_PREFIX` environment variables, you can
+also use this proxy for other docker registries.
+
+For example, to proxy `docker pull ahmet/example` to Docker Hub, specify
+environment variables:
+
+- `REGISTRY_HOST=index.docker.io`
+- `REPO_PREFIX=ahmet`
+
+> **Note:** This is not tested with registries other than Docker Hub and GCR.io.
+> If you can make it work with Azure Container Registry or AWS Elastic Container
+> Registry, contribute examples here.
+
+### Exposing private registries publicly (GCR.io)
 
 > ⚠️ This will make images in your private GCR registries publicly accessible on
 > the internet.
@@ -95,17 +110,16 @@ publicly accessible.
 
    You need to rebuild and deploy the updated image.
 
-### Advanced Customization
+### Configuration
 
 While deploying, you can set additional environment variables for customization:
 
-- **`GCR_HOST`**: defaults to `gcr.io`.
-- **`DISABLE_BROWSER_REDIRECTS`**: if you set this variable to any value,
-  visiting `example.com/image` on this browser will not redirect to
-  `gcr.io/[PROJECT_ID/image` to allow your users to browse the image on GCR. If
-  you're exposing private registries, you might want to set this variable.
-- **`GOOGLE_APPLICATION_CREDENTIALS`**: path to the IAM service account JSON key
-  file to expose the private GCR registries publicly.
+| Key | Value |
+|-----|-------|
+| `REGISTRY_HOST` | specify  hostname for target registry, e.g. `gcr.io`. |
+| `DISABLE_BROWSER_REDIRECTS` |  if you set this variable to any value,   visiting `example.com/image` on this browser will not redirect to  `[REGISTRY_HOST]/[REPO_PREFIX]/image` to allow your users to browse the image on GCR. If you're exposing private registries, you might want to set this variable. |
+| `AUTH_HEADER` | The `Authentication: [...]` header’s value to authenticate to the target registry |
+| `GOOGLE_APPLICATION_CREDENTIALS` | (For `gcr.io`) Path to the IAM service account JSON key  file to expose the private GCR registries publicly. |
 
 -----
 
