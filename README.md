@@ -37,8 +37,8 @@ This handles many of the heavy-lifting for you.
    1. Update your DNS records
 1. Have fun!
 
-To deploy this to [Cloud Run][run], replace `[PROJECT_ID]` with the project ID
-of the GCR registry you want to expose publicly:
+To deploy this to [Cloud Run][run], replace `[GCP_PROJECT_ID]` with the project
+ID of the GCR registry you want to expose publicly:
 
 ```sh
 gcloud beta run deploy \
