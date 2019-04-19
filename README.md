@@ -1,4 +1,4 @@
-# Vanity (Custom) Domains for Google Container Registry
+# Serverless Container Registry Proxy (for custom domains etc)
 
 This project offers a very simple reverse proxy that lets you expose your
 (public or private) Google Container Registries on `gcr.io` as a public registry
