@@ -1,0 +1,12 @@
+{
+  "env": {
+    "REGISTRY_HOST": {
+      "value": "gcr.io",
+      "description": "hostname for target registry"
+    },
+    "REPO_PREFIX": {
+      "description": "prefix for your images in the target registry (i.e. GCP project ID)",
+      "required": false
+    }
+  }
+}
