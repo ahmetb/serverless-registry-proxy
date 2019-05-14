@@ -1,4 +1,4 @@
-# Serverless Container Registry Proxy (for custom domains etc)
+# Serverless Container Registry Proxy
 
 This project offers a very simple reverse proxy that lets you expose your
 (public or private) Google Container Registries on `gcr.io` as a public registry
