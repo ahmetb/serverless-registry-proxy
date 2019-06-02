@@ -6,7 +6,6 @@ on your own domain name.
 
 [![Run on Google Cloud](https://storage.googleapis.com/cloudrun/button.png)](https://console.cloud.google.com/cloudshell/editor?shellonly=true&cloudshell_image=gcr.io/ahmetb-public/button&cloudshell_git_repo=https://github.com/ahmetb/serverless-registry-proxy)
 
-[test](https://httpbin.org/get)
 
 For example, if you have a public registry, and offering images like:
 
