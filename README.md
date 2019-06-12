@@ -1,11 +1,13 @@
 # Serverless Container Registry Proxy
 
 This project offers a very simple reverse proxy that lets you expose your
-(public or private) Google Container Registries on `gcr.io` as a public registry
-on your own domain name.
+public or private Docker registries (such as Google Container Registry `gcr.io`,
+or Docker Hub account) as a public registry on your own domain name.
 
-[![Run on Google Cloud](https://storage.googleapis.com/cloudrun/button.png)](https://console.cloud.google.com/cloudshell/editor?shellonly=true&cloudshell_image=gcr.io/ahmetb-public/button&cloudshell_git_repo=https://github.com/ahmetb/serverless-registry-proxy)
+You can also fork this project and customize as a middleware and deploy to
+[Cloud Run][run] or somewhere else since it’s a generic docker-registry proxy.
 
+[![Run on Google Cloud](https://storage.googleapis.com/cloudrun/button.png)](https://console.cloud.google.com/cloudshell/editor?shellonly=true&cloudshell_image=gcr.io/cloudrun/button&cloudshell_git_repo=https://github.com/ahmetb/serverless-registry-proxy)
 
 For example, if you have a public registry, and offering images like:
 
