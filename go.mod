@@ -1,3 +1,3 @@
-module gcr-proxy
+module serverless-registry-proxy
 
 go 1.12

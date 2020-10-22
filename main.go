@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Google LLC
+Copyright 2020 Google LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -139,6 +139,7 @@ func captureHostHeader(next http.Handler) http.Handler {
 // tokenEndpoint.
 func tokenProxyHandler(tokenEndpoint, repoPrefix string) http.HandlerFunc {
 	return (&httputil.ReverseProxy{
+		FlushInterval: -1,
 		Director: func(r *http.Request) {
 			orig := r.URL.String()
 
@@ -172,7 +173,8 @@ func browserRedirectHandler(cfg registryConfig) http.HandlerFunc {
 // registryAPIProxy returns a reverse proxy to the specified registry.
 func registryAPIProxy(cfg registryConfig, auth authenticator) http.HandlerFunc {
 	return (&httputil.ReverseProxy{
-		Director: rewriteRegistryV2URL(cfg),
+		FlushInterval: -1,
+		Director:      rewriteRegistryV2URL(cfg),
 		Transport: &registryRoundtripper{
 			auth: auth,
 		},
@@ -215,9 +217,6 @@ func (rrt *registryRoundtripper) RoundTrip(req *http.Request) (*http.Response, e
 	if ua := req.Header.Get("user-agent"); ua != "" {
 		req.Header.Set("user-agent", "gcr-proxy/0.1 customDomain/"+origHost+" "+ua)
 	}
-
-	// TODO(ahmetb) remove after Google internal bug 129780113 is fixed.
-	req.Header.Set("accept", "*/*")
 
 	resp, err := http.DefaultTransport.RoundTrip(req)
 	if err == nil {

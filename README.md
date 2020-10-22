@@ -13,11 +13,23 @@ For example, if you have a public registry, and offering images like:
 
     docker pull gcr.io/ahmetb-public/busybox
 
-You can use this proxy, and instead offer your images ✨way fancier🎩, like:
+You can use this proxy, and instead offer your images in a ✨fancier way✨ on a
+custom domain, such as:
 
     docker pull r.ahmet.dev/busybox
 
+This project is a stateless reverse proxy, and can be deployed to a managed
+compute platform such as [Cloud Run][run]. It works by reverse proxying the
+[Docker Registry API v2](https://docs.docker.com/registry/spec/api/) requests
+to the underlying registry:
+
 ![architecture diagram](./docs/img/diagram.svg)
+
+It does not support "pushing"; however, as you push images to the underlying
+registry, you can serve them on your custom domain.
+
+You are also free to fork this project and use it as a "customizable middleware"
+in front of your container image registry.
 
 ## Building
 
