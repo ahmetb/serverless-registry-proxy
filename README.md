@@ -1,8 +1,9 @@
 # Serverless Container Registry Proxy
 
-This project offers a very simple reverse proxy that lets you expose your
-public or private Docker registries (such as Google Container Registry `gcr.io`,
-or Docker Hub account) as a public registry on your own domain name.
+This project offers a very simple reverse proxy that lets you expose your public
+or private Docker registries (such as Google Container Registry `gcr.io`, Google
+Artifact Registry (`*.pkg.dev`) or Docker Hub account) as a public registry on
+your own domain name.
 
 You can also fork this project and customize as a middleware and deploy to
 [Cloud Run][run] or somewhere else since it’s a generic docker-registry proxy.
@@ -12,8 +13,10 @@ You can also fork this project and customize as a middleware and deploy to
 For example, if you have a public registry, and offering images like:
 
     docker pull gcr.io/ahmetb-public/busybox
+    # or
+    docker pull us-central1-docker.pkg.dev/ahmetb-demo/ahmetb-demo/busybox
 
-You can use this proxy, and instead offer your images in a ✨fancier way✨ on a
+you can use this proxy, and instead offer your images in a ✨fancier way✨ on a
 custom domain, such as:
 
     docker pull r.ahmet.dev/busybox
@@ -41,7 +44,7 @@ Then, push to a registry like:
 
     docker push gcr.io/[YOUR_PROJECT]/gcr-proxy
 
-## Deploying (to Google Cloud Run) for GCR.io
+## Deploying (to Google Cloud Run) for Google Container Registry (`gcr.io`)
 
 You can easily deploy this as a serverless container to [Google Cloud Run][run].
 This handles many of the heavy-lifting for you.
@@ -80,6 +83,15 @@ This command will require verifying ownership of your domain name, and have you
 set DNS records for your domain to point to [Cloud Run][run]. Then, it will take
 some 15-20 minutes to actually provision TLS certificates for your domain name.
 
+## Deploying (to Google Cloud Run) for Google Artifact Registry (`*.pkg.dev`)
+
+Same instructions as GCR listed above. You need to just configure these
+environment variables differently:
+
+- `REGISTRY_HOST`: your regional AR domain (e.g. `us-central1-docker.pkg.dev`)
+- `REPO_PREFIX`: project ID + AR Repository name (e.g.
+  `ahmetb-demo/prod-images`)
+
 ### Deploying (elsewhere)
 
 ...is much harder. You need to deploy the application to an environment like
@@ -97,7 +109,7 @@ environment variables:
 - `REGISTRY_HOST=index.docker.io`
 - `REPO_PREFIX=ahmet`
 
-> **Note:** This is not tested with registries other than Docker Hub and GCR.io.
+> **Note:** This is not tested with registries other than Docker Hub and GCR/AR.
 > If you can make it work with Azure Container Registry or AWS Elastic Container
 > Registry, contribute examples here.
 
