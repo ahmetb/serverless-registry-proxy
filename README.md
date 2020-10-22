@@ -83,6 +83,11 @@ This command will require verifying ownership of your domain name, and have you
 set DNS records for your domain to point to [Cloud Run][run]. Then, it will take
 some 15-20 minutes to actually provision TLS certificates for your domain name.
 
+> Pricing Note: Cloud Run has a generous free tier. When serving GCR.io
+> registries using this proxy, the layer blobs will not be served through this
+> proxy (as they're downloaded from a signed GCS URL). This saves you a lot of
+> "billable time" and "egress networking" costs.
+
 ## Deploying (to Google Cloud Run) for Google Artifact Registry (`*.pkg.dev`)
 
 Same instructions as GCR listed above. You need to just configure these
@@ -91,6 +96,11 @@ environment variables differently:
 - `REGISTRY_HOST`: your regional AR domain (e.g. `us-central1-docker.pkg.dev`)
 - `REPO_PREFIX`: project ID + AR Repository name (e.g.
   `ahmetb-demo/prod-images`)
+
+> **Warning:** When using Artifact Registry, the layer blobs are downloaded
+> through this proxy, and therefore will incur [more
+> costs](https://cloud.google.com/run/pricing) on Cloud Run such as networking
+> egress and longer execution times leading to higher "billable time".
 
 ### Deploying (elsewhere)
 
