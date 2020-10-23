@@ -1,25 +1,27 @@
 # Serverless Container Registry Proxy
 
 This project offers a very simple reverse proxy that lets you expose your public
-or private Docker registries (such as Google Container Registry `gcr.io`, Google
-Artifact Registry (`*.pkg.dev`) or Docker Hub account) as a public registry on
-your own domain name.
+or private Docker registries (such as [Google Container
+Registry](https://cloud.google.com/container-registry) `gcr.io`, [Google
+Artifact Registry](https://cloud.google.com/artifact-registry) (`*.pkg.dev`) or
+Docker Hub account) as a public registry on your own domain name.
 
 You can also fork this project and customize as a middleware and deploy to
-[Cloud Run][run] or somewhere else since it’s a generic docker-registry proxy.
+[Cloud Run][run] or somewhere else since it’s a generic docker registry proxy.
 
 [![Run on Google Cloud](https://storage.googleapis.com/cloudrun/button.png)](https://console.cloud.google.com/cloudshell/editor?shellonly=true&cloudshell_image=gcr.io/cloudrun/button&cloudshell_git_repo=https://github.com/ahmetb/serverless-registry-proxy)
 
-For example, if you have a public registry, and offering images like:
+For example, if you have a public registry, and offering images publicly with
+names such as:
 
-    docker pull gcr.io/ahmetb-public/busybox
+    docker pull gcr.io/ahmetb-public/foo
     # or
-    docker pull us-central1-docker.pkg.dev/ahmetb-demo/ahmetb-demo/busybox
+    docker pull us-central1-docker.pkg.dev/ahmetb-demo/ahmetb-demo/foo
 
 you can use this proxy, and instead offer your images in a ✨fancier way✨ on a
 custom domain, such as:
 
-    docker pull r.ahmet.dev/busybox
+    docker pull r.ahmet.dev/foo
 
 This project is a stateless reverse proxy, and can be deployed to a managed
 compute platform such as [Cloud Run][run]. It works by reverse proxying the
@@ -51,7 +53,7 @@ This handles many of the heavy-lifting for you.
 
 1. Build and push docker images (previous step)
 1. Deploy to [Cloud Run][run].
-1. Configure custom domain.
+1. Configure custom domain for Cloud Run service.
    1. Create domain mapping
    1. Verify domain ownership
    1. Update your DNS records
@@ -61,32 +63,35 @@ To deploy this to [Cloud Run][run], replace `[GCP_PROJECT_ID]` with the project
 ID of the GCR registry you want to expose publicly:
 
 ```sh
-gcloud beta run deploy \
+gcloud run deploy gcr-proxy \
     --allow-unauthenticated \
     --image "[IMAGE]" \
-    --set-env-vars "REGISTRY_HOST=gcr.io,REPO_PREFIX=[GCP_PROJECT_ID]"
+    --set-env-vars "REGISTRY_HOST=gcr.io" \
+    --set-env-vars "REPO_PREFIX=[GCP_PROJECT_ID]"
 ```
 
-> This will deploy a proxy for your `gcr.io/[GCP_PROJECT_ID]` public registry.
+> This will deploy a publicly accessible registry for your
+> `gcr.io/[GCP_PROJECT_ID]`, which also [needs to be
+> public](https://cloud.google.com/container-registry/docs/access-control#public).
 > If your GCR registry is private, see the section below on "Exposing private
 > registries".
 
 Then create a domain mapping by running (replace the `--domain` value):
 
 ```sh
-gcloud beta run domain-mappings create \
+gcloud run domain-mappings create \
     --service gcr-proxy \
-    --domain reg.ahmet.dev
+    --domain [YOUR_DOMAIN]
 ```
 
 This command will require verifying ownership of your domain name, and have you
 set DNS records for your domain to point to [Cloud Run][run]. Then, it will take
 some 15-20 minutes to actually provision TLS certificates for your domain name.
 
-> Pricing Note: Cloud Run has a generous free tier. When serving GCR.io
-> registries using this proxy, the layer blobs will not be served through this
-> proxy (as they're downloaded from a signed GCS URL). This saves you a lot of
-> "billable time" and "egress networking" costs.
+> Pricing Note: Cloud Run has a generous free tier. When serving from GCR using
+> this proxy, the layer blobs will not be served through this proxy (as they're
+> downloaded from a signed GCS URL). This saves you a lot of "billable time" and
+> "egress networking" costs.
 
 ## Deploying (to Google Cloud Run) for Google Artifact Registry (`*.pkg.dev`)
 
