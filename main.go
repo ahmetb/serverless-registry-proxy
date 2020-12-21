@@ -45,6 +45,8 @@ type registryConfig struct {
 }
 
 func main() {
+	host := os.Getenv("HOST")
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("PORT environment variable not specified")
@@ -92,7 +94,7 @@ func main() {
 	}
 	mux.Handle("/v2/", registryAPIProxy(reg, auth))
 
-	addr := ":" + port
+	addr := fmt.Sprintf("%s:%s", host, port)
 	handler := captureHostHeader(mux)
 	log.Printf("starting to listen on %s", addr)
 	if cert, key := os.Getenv("TLS_CERT"), os.Getenv("TLS_KEY"); cert != "" && key != "" {
