@@ -37,6 +37,13 @@ var (
 	re                 = regexp.MustCompile(`^/v2/`)
 	realm              = regexp.MustCompile(`realm="(.*?)"`)
 	ctxKeyOriginalHost = struct{}{}
+
+	// https://docs.docker.com/registry/spec/api/#blob
+	// /v2/<name>/blobs/<digest>
+	reDockerBlobRequest = regexp.MustCompile(`^/v2/(?P<name>[a-z0-9._\-\/]*)/blobs/(?P<digest>[a-z0-9]+:[a-z0-9]+)$`)
+
+	// Repository and image names: https://cloud.google.com/artifact-registry/docs/docker/names#docker-repo
+	reGcpArtifactRegistryHost = regexp.MustCompile(`^(?P<location>[a-z0-9\-]+)-docker\.pkg\.dev$`)
 )
 
 type registryConfig struct {
@@ -178,6 +185,7 @@ func registryAPIProxy(cfg registryConfig, auth authenticator) http.HandlerFunc {
 		Transport: &registryRoundtripper{
 			auth: auth,
 		},
+		ModifyResponse: registryModifyResponse,
 	}).ServeHTTP
 }
 
@@ -200,6 +208,35 @@ func rewriteRegistryV2URL(c registryConfig) func(*http.Request) {
 		}
 		log.Printf("rewrote url: %s into %s", u, req.URL)
 	}
+}
+
+// registryModifyResponse intercepts the response from the upstream registry
+func registryModifyResponse(resp *http.Response) error {
+	req := resp.Request
+
+	// Response modification per upstream registry type
+	if isGcpArtifactRegistry(req.URL) {
+		// Rewrite blob request redirect directly to upstream artifact registry
+		// - the client is not required to present the Authorization header in the subsequent request
+		// - it is assumed that the redirect location contains a signature to authorize the operation
+		if resp.StatusCode == http.StatusFound && reDockerBlobRequest.MatchString(req.RequestURI) && strings.HasPrefix(resp.Header.Get("Location"), "/") {
+			// Prepend upstream registry host to Location header
+			upstreamLocationUrl := &url.URL{
+				Scheme: req.URL.Scheme,
+				Host:   req.URL.Host,
+				Path:   resp.Header.Get("Location"),
+			}
+
+			resp.Header.Set("Location", upstreamLocationUrl.String())
+		}
+	}
+
+	return nil
+}
+
+// isGcpArtifactRegistry returns true if the host of a URL belongs to a GCP artifact registry instance
+func isGcpArtifactRegistry(url *url.URL) bool {
+	return url != nil && reGcpArtifactRegistryHost.MatchString(url.Host)
 }
 
 type registryRoundtripper struct {
