@@ -102,10 +102,11 @@ environment variables differently:
 - `REPO_PREFIX`: project ID + AR Repository name (e.g.
   `ahmetb-demo/prod-images`)
 
-> **Warning:** When using Artifact Registry, the layer blobs are downloaded
-> through this proxy, and therefore will incur [more
-> costs](https://cloud.google.com/run/pricing) on Cloud Run such as networking
-> egress and longer execution times leading to higher "billable time".
+> Pricing Note: Similar to serving from GCR, when serving from Google Artifact
+> Registry using this proxy, the layer blobs will not be served through this
+> proxy. The registry client will be redirected to a signed GAR URL of the
+> upstream AR domain. Therefore, the blob traffic does not pass through the
+> Cloud Run instance.
 
 ### Deploying (elsewhere)
 
