@@ -16,8 +16,10 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -207,6 +209,12 @@ type registryRoundtripper struct {
 }
 
 func (rrt *registryRoundtripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.Method == http.MethodHead {
+		return &http.Response{
+			StatusCode: http.StatusBadRequest,
+			Body: ioutil.NopCloser(bytes.NewBufferString("HEAD not supported")),
+		}, errors.New("HEAD requests are not supported")
+	}
 	log.Printf("request received. url=%s", req.URL)
 
 	if rrt.auth != nil {
