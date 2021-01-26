@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -213,7 +212,7 @@ func (rrt *registryRoundtripper) RoundTrip(req *http.Request) (*http.Response, e
 		return &http.Response{
 			StatusCode: http.StatusBadRequest,
 			Body: ioutil.NopCloser(bytes.NewBufferString("HEAD not supported")),
-		}, errors.New("HEAD requests are not supported")
+		}, nil
 	}
 	log.Printf("request received. url=%s", req.URL)
 
