@@ -209,10 +209,13 @@ type registryRoundtripper struct {
 
 func (rrt *registryRoundtripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.Method == http.MethodHead {
-		return &http.Response{
+		resp := &http.Response{
 			StatusCode: http.StatusBadRequest,
 			Body: ioutil.NopCloser(bytes.NewBufferString("HEAD not supported")),
-		}, nil
+			Header: make(http.Header),
+		}
+		resp.Header.Set("X-Error", "HEAD requests are not supported")
+		return resp, nil
 	}
 	log.Printf("request received. url=%s", req.URL)
 
