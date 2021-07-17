@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -26,6 +27,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -45,19 +47,36 @@ type registryConfig struct {
 }
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatal("PORT environment variable not specified")
-	}
-	browserRedirects := os.Getenv("DISABLE_BROWSER_REDIRECTS") == ""
+	portPtr := flag.Int("port", 0, "the port to listen on")
+	browserRedirectsPtr := flag.Bool("disableBrowserRedirects", false, "disable browser redirects")
+	registryHostPtr := flag.String("registryHost", "", "the target registry host")
+	repoPrefixPtr := flag.String("repoPrefix", "", "the target repository prefix to be used")
+	flag.Parse()
 
-	registryHost := os.Getenv("REGISTRY_HOST")
-	if registryHost == "" {
-		log.Fatal("REGISTRY_HOST environment variable not specified (example: gcr.io)")
+	port := *portPtr
+	if port < 1 {
+		port := os.Getenv("PORT")
+		if port == "" {
+			log.Fatal("PORT environment variable not specified")
+		}
 	}
-	repoPrefix := os.Getenv("REPO_PREFIX")
+
+	browserRedirects := os.Getenv("DISABLE_BROWSER_REDIRECTS") == "" && !*browserRedirectsPtr
+
+	registryHost := *registryHostPtr
+	if registryHost == "" {
+		registryHost := os.Getenv("REGISTRY_HOST")
+		if registryHost == "" {
+			log.Fatal("REGISTRY_HOST environment variable not specified (example: gcr.io)")
+		}
+	}
+
+	repoPrefix := *repoPrefixPtr
 	if repoPrefix == "" {
-		log.Fatal("REPO_PREFIX environment variable not specified")
+		repoPrefix := os.Getenv("REPO_PREFIX")
+		if repoPrefix == "" {
+			log.Fatal("REPO_PREFIX environment variable not specified")
+		}
 	}
 
 	reg := registryConfig{
@@ -92,7 +111,7 @@ func main() {
 	}
 	mux.Handle("/v2/", registryAPIProxy(reg, auth))
 
-	addr := ":" + port
+	addr := ":" + strconv.Itoa(port)
 	handler := captureHostHeader(mux)
 	log.Printf("starting to listen on %s", addr)
 	if cert, key := os.Getenv("TLS_CERT"), os.Getenv("TLS_KEY"); cert != "" && key != "" {
