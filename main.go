@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -26,6 +27,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -34,9 +36,17 @@ const (
 )
 
 var (
-	re                 = regexp.MustCompile(`^/v2/`)
-	realm              = regexp.MustCompile(`realm="(.*?)"`)
-	ctxKeyOriginalHost = "original-host"
+	re                 	= regexp.MustCompile(`^/v2/`)
+	realm              	= regexp.MustCompile(`realm="(.*?)"`)
+	ctxKeyOriginalHost 	= "original-host"
+	port string
+	browserRedirects bool
+	registryHost string
+	repoPrefix string
+	portPtr 		   	= flag.Int("port", 0, "the port to listen on")
+	browserRedirectsPtr = flag.Bool("disableBrowserRedirects", false, "disable browser redirects")
+	registryHostPtr 	= flag.String("registryHost", "", "the target registry host")
+	repoPrefixPtr 		= flag.String("repoPrefix", "", "the target repository prefix to be used")
 )
 
 type registryConfig struct {
@@ -45,19 +55,33 @@ type registryConfig struct {
 }
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatal("PORT environment variable not specified")
-	}
-	browserRedirects := os.Getenv("DISABLE_BROWSER_REDIRECTS") == ""
+	flag.Parse()
 
-	registryHost := os.Getenv("REGISTRY_HOST")
-	if registryHost == "" {
-		log.Fatal("REGISTRY_HOST environment variable not specified (example: gcr.io)")
+	if *portPtr < 1 {
+		port = os.Getenv("PORT")
+		if port == "" {
+			log.Fatal("PORT environment variable not specified")
+		}
+	} else {
+		port = strconv.Itoa(*portPtr)
 	}
-	repoPrefix := os.Getenv("REPO_PREFIX")
+
+	browserRedirects = os.Getenv("DISABLE_BROWSER_REDIRECTS") == "" && !*browserRedirectsPtr
+
+	registryHost = *registryHostPtr
+	if registryHost == "" {
+		registryHost = os.Getenv("REGISTRY_HOST")
+		if registryHost == "" {
+			log.Fatal("REGISTRY_HOST environment variable not specified (example: gcr.io)")
+		}
+	}
+
+	repoPrefix = *repoPrefixPtr
 	if repoPrefix == "" {
-		log.Fatal("REPO_PREFIX environment variable not specified")
+		repoPrefix = os.Getenv("REPO_PREFIX")
+		if repoPrefix == "" {
+			log.Fatal("REPO_PREFIX environment variable not specified")
+		}
 	}
 
 	reg := registryConfig{
