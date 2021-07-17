@@ -128,6 +128,29 @@ environment variables:
 > If you can make it work with Azure Container Registry or AWS Elastic Container
 > Registry, contribute examples here.
 
+### Run the reverse proxy using command-line flags
+
+You can also run this tool with a single CLI command
+using flags like below. Flags take precedence over environment
+variables and can be useful to debug or quickly test
+several configurations locally.
+
+```sh
+# Build the app
+go build -o ./app
+
+# After building the app
+./app \
+    -port=8080 \
+    -registeryHost="index.docker.io" \
+    -repoPrefix="ahmet"
+```
+
+> **Note:** This will start the reverse proxy listening on port
+> 8080 without any TLS encryption. You will have to implement
+> your own method of securing requests to your domain, for example
+> by using [Caddy](https://caddyserver.com/docs/quick-starts/https#the-reverse-proxy-command) as a front-end.
+
 ### Exposing private registries publicly (GCR.io)
 
 > ⚠️ This will make images in your private GCR registries publicly accessible on
