@@ -45,6 +45,9 @@ type registryConfig struct {
 	repoPrefix string
 }
 
+// CDNHost is used to rewrite redirects for storage.googleapis.com to a custom CDN domain.
+var CDNHost = os.Getenv("CDN_HOST")
+
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -211,8 +214,8 @@ func (rrt *registryRoundtripper) RoundTrip(req *http.Request) (*http.Response, e
 	if req.Method == http.MethodHead {
 		resp := &http.Response{
 			StatusCode: http.StatusBadRequest,
-			Body: ioutil.NopCloser(bytes.NewBufferString("HEAD not supported")),
-			Header: make(http.Header),
+			Body:       ioutil.NopCloser(bytes.NewBufferString("HEAD not supported")),
+			Header:     make(http.Header),
 		}
 		resp.Header.Set("X-Error", "HEAD requests are not supported")
 		return resp, nil
@@ -244,7 +247,24 @@ func (rrt *registryRoundtripper) RoundTrip(req *http.Request) (*http.Response, e
 	}
 
 	updateTokenEndpoint(resp, origHost)
+	if CDNHost != "" {
+		updateLocationHeader(resp)
+	}
 	return resp, nil
+}
+
+// updateLocationHeader modifies the response header like:
+//    Location: https://storage.googleapis.com/xyz
+// to point to a custom CDN location.
+func updateLocationHeader(resp *http.Response) {
+	replace := "https://storage.googleapis.com"
+	v := resp.Header.Get("Location")
+	if v == "" {
+		return
+	}
+	if strings.HasPrefix(v, replace) {
+		resp.Header.Set("Location", strings.Replace(v, replace, CDNHost, 1))
+	}
 }
 
 // updateTokenEndpoint modifies the response header like:
