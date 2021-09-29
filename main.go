@@ -45,10 +45,40 @@ type registryConfig struct {
 	repoPrefix string
 }
 
-// CDNHost is used to rewrite redirects for storage.googleapis.com to a custom CDN domain.
-var CDNHost = os.Getenv("CDN_HOST")
+type StorageProxy struct {
+	p *httputil.ReverseProxy
+}
+
+func (ph *StorageProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.URL)
+	log.Println(r.Header)
+	log.Println(r.Host)
+	log.Println(r.Method)
+
+
+	ph.p.ServeHTTP(w, r)
+}
 
 func main() {
+	remote, err := url.Parse("https://storage.googleapis.com")
+	if err != nil {
+		panic(err)
+	}
+
+	// Proxy /storage to storage.googleapis.com for image downlaods.
+	proxy := httputil.NewSingleHostReverseProxy(remote)
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.Host = "storage.googleapis.com"
+		req.URL.Path = strings.TrimPrefix(req.URL.Path, "/storage")
+	}
+	proxy.ModifyResponse = func(r *http.Response) error {
+		// Ensure "transfer-encoding: chunked" as Google Cloud Run only allows 32 MB responses if they are not chunked.
+		r.Header.Del("content-length")
+		return nil
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Fatal("PORT environment variable not specified")
@@ -95,6 +125,7 @@ func main() {
 		mux.Handle("/_token", tokenProxyHandler(tokenEndpoint, repoPrefix))
 	}
 	mux.Handle("/v2/", registryAPIProxy(reg, auth))
+	mux.Handle("/storage/", &StorageProxy{proxy})
 
 	addr := ":" + port
 	handler := captureHostHeader(mux)
@@ -247,23 +278,22 @@ func (rrt *registryRoundtripper) RoundTrip(req *http.Request) (*http.Response, e
 	}
 
 	updateTokenEndpoint(resp, origHost)
-	if CDNHost != "" {
-		updateLocationHeader(resp)
-	}
+	updateLocationHeader(resp, origHost)
 	return resp, nil
 }
 
 // updateLocationHeader modifies the response header like:
 //    Location: https://storage.googleapis.com/xyz
-// to point to a custom CDN location.
-func updateLocationHeader(resp *http.Response) {
+// to point to the internal Google Cloud Storage proxy under /storage
+func updateLocationHeader(resp *http.Response, host string) {
 	replace := "https://storage.googleapis.com"
 	v := resp.Header.Get("Location")
 	if v == "" {
 		return
 	}
 	if strings.HasPrefix(v, replace) {
-		resp.Header.Set("Location", strings.Replace(v, replace, CDNHost, 1))
+		newHost := fmt.Sprintf("https://%s/storage", host)
+		resp.Header.Set("Location", strings.Replace(v, replace, newHost, 1))
 	}
 }
 
