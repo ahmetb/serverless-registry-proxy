@@ -37,7 +37,7 @@ const (
 var (
 	re                 = regexp.MustCompile(`^/v2/`)
 	realm              = regexp.MustCompile(`realm="(.*?)"`)
-	ctxKeyOriginalHost = struct{}{}
+	ctxKeyOriginalHost = "original-host"
 )
 
 type registryConfig struct {
@@ -235,6 +235,14 @@ func (rrt *registryRoundtripper) RoundTrip(req *http.Request) (*http.Response, e
 		log.Printf("request failed with error: %+v", err)
 		return nil, err
 	}
+
+	// Google Artifact Registry sends a "location: /artifacts-downloads/..." URL
+	// to download blobs. We don't want these routed to the proxy itself.
+	if locHdr := resp.Header.Get("location"); req.Method == http.MethodGet &&
+		resp.StatusCode == http.StatusFound && strings.HasPrefix(locHdr, "/") {
+		resp.Header.Set("location", req.URL.Scheme+"://"+req.URL.Host+locHdr)
+	}
+
 	updateTokenEndpoint(resp, origHost)
 	return resp, nil
 }
