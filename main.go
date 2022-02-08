@@ -29,11 +29,16 @@ import (
 	"strings"
 )
 
+const (
+	ctxKeyOriginalHost = myContextKey("original-host")
+)
+
 var (
 	re                 = regexp.MustCompile(`^/v2/`)
 	realm              = regexp.MustCompile(`realm="(.*?)"`)
-	ctxKeyOriginalHost = "original-host"
 )
+
+type myContextKey string
 
 type registryConfig struct {
 	host       string
