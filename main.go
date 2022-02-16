@@ -30,14 +30,15 @@ import (
 )
 
 const (
-	defaultGCRHost = "gcr.io"
+	ctxKeyOriginalHost = myContextKey("original-host")
 )
 
 var (
 	re                 = regexp.MustCompile(`^/v2/`)
 	realm              = regexp.MustCompile(`realm="(.*?)"`)
-	ctxKeyOriginalHost = "original-host"
 )
+
+type myContextKey string
 
 type registryConfig struct {
 	host       string
@@ -181,12 +182,6 @@ func registryAPIProxy(cfg registryConfig, auth authenticator) http.HandlerFunc {
 			auth: auth,
 		},
 	}).ServeHTTP
-}
-
-// handleRegistryAPIVersion signals docker-registry v2 API on /v2/ endpoint.
-func handleRegistryAPIVersion(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
-	fmt.Fprint(w, "ok")
 }
 
 // rewriteRegistryV2URL rewrites request.URL like /v2/* that come into the server
