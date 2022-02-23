@@ -9,7 +9,7 @@ RUN apk add --no-cache ca-certificates
 COPY --from=build /app /app
 
 # uncomment the following two lines if you're exposing a private GCR registry
-# COPY key.json /app/key.json
-# ENV GOOGLE_APPLICATION_CREDENTIALS /app/key.json
+# COPY key.json /key.json
+# ENV GOOGLE_APPLICATION_CREDENTIALS /key.json
 
 ENTRYPOINT [ "/app" ]
