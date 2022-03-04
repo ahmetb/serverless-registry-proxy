@@ -1,4 +1,4 @@
-FROM golang:1.17.7-alpine AS build
+FROM golang:1.18rc1-alpine AS build
 RUN apk add --no-cache git ca-certificates
 WORKDIR /src/app
 COPY . .
