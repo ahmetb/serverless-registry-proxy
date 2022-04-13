@@ -168,7 +168,7 @@ func tokenProxyHandler(tokenEndpoint, repoPrefix string) http.HandlerFunc {
 // entered into the browser, like GCR (gcr.io/google-containers/busybox).
 func browserRedirectHandler(cfg registryConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		url := fmt.Sprintf("https://%s/%s%s", cfg.host, cfg.repoPrefix, r.RequestURI)
+		url := fmt.Sprintf("https://www.conjure.ml")
 		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 	}
 }
