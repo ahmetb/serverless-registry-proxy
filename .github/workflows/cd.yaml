@@ -1,0 +1,43 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - tags
+
+jobs:
+  build:
+    timeout-minutes: 30
+    permissions:
+      packages: write
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set tag and image outputs
+        id: set_tag
+        run: |
+          IMAGE="ghcr.io/$GITHUB_REPOSITORY"
+          echo ::set-output name=tagged_image::${IMAGE}:${GITHUB_REF_NAME}
+          echo ::set-output name=tag::${GITHUB_REF_NAME}
+
+      - name: Build image
+        id: build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          pull: true
+          load: true
+          tags: ${{ steps.set_tag.outputs.tagged_image }}
+
+      - name: Push image
+        run: docker push ${{ steps.set_tag.outputs.tagged_image }}
