@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    https://www.apache.org/licenses/LICENSE-2.0
+	https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -27,6 +26,9 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 const (
@@ -34,8 +36,8 @@ const (
 )
 
 var (
-	re                 = regexp.MustCompile(`^/v2/`)
-	realm              = regexp.MustCompile(`realm="(.*?)"`)
+	re    = regexp.MustCompile(`^/v2/`)
+	realm = regexp.MustCompile(`realm="(.*?)"`)
 )
 
 type myContextKey string
@@ -74,16 +76,18 @@ func main() {
 	}
 	log.Printf("discovered token endpoint for backend registry: %s", tokenEndpoint)
 
-	var auth authenticator
-	if basic := os.Getenv("AUTH_HEADER"); basic != "" {
-		auth = authHeader(basic)
-	} else if gcpKey := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); gcpKey != "" {
-		b, err := ioutil.ReadFile(gcpKey)
-		if err != nil {
-			log.Fatalf("could not read key file from %s: %+v", gcpKey, err)
-		}
-		log.Printf("using specified service account json key to authenticate proxied requests")
-		auth = authHeader("Basic " + base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("_json_key:%s", string(b)))))
+	var tokenSource oauth2.TokenSource
+	ctx := context.Background()
+	scopes := []string{
+		// TODO this could be overly permissive
+		"https://www.googleapis.com/auth/cloud-platform",
+	}
+	credentials, err := google.FindDefaultCredentials(ctx, scopes...)
+	if err == nil {
+		log.Printf("found default credentials. %v", credentials)
+		tokenSource = credentials.TokenSource
+		log.Printf("Found token source")
+		// auth = authHeader("Basic " + base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("oauth2accesstoken:%s", token.AccessToken))))
 	}
 
 	mux := http.NewServeMux()
@@ -93,7 +97,7 @@ func main() {
 	if tokenEndpoint != "" {
 		mux.Handle("/_token", tokenProxyHandler(tokenEndpoint, repoPrefix))
 	}
-	mux.Handle("/v2/", registryAPIProxy(reg, auth))
+	mux.Handle("/v2/", registryAPIProxy(reg, tokenSource))
 
 	addr := fmt.Sprintf("%s:%s", host, port)
 	handler := captureHostHeader(mux)
@@ -174,12 +178,12 @@ func browserRedirectHandler(cfg registryConfig) http.HandlerFunc {
 }
 
 // registryAPIProxy returns a reverse proxy to the specified registry.
-func registryAPIProxy(cfg registryConfig, auth authenticator) http.HandlerFunc {
+func registryAPIProxy(cfg registryConfig, tokenSource oauth2.TokenSource) http.HandlerFunc {
 	return (&httputil.ReverseProxy{
 		FlushInterval: -1,
 		Director:      rewriteRegistryV2URL(cfg),
 		Transport: &registryRoundtripper{
-			auth: auth,
+			tokenSource: tokenSource,
 		},
 	}).ServeHTTP
 }
@@ -200,14 +204,15 @@ func rewriteRegistryV2URL(c registryConfig) func(*http.Request) {
 }
 
 type registryRoundtripper struct {
-	auth authenticator
+	tokenSource oauth2.TokenSource
 }
 
 func (rrt *registryRoundtripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	log.Printf("request received. url=%s", req.URL)
-
-	if rrt.auth != nil {
-		req.Header.Set("Authorization", rrt.auth.AuthHeader())
+	token, err := rrt.tokenSource.Token()
+	if err == nil {
+		auth := authHeader("Basic " + base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("oauth2accesstoken:%s", token.AccessToken))))
+		req.Header.Set("Authorization", auth.AuthHeader())
 	}
 
 	origHost := req.Context().Value(ctxKeyOriginalHost).(string)
@@ -235,7 +240,9 @@ func (rrt *registryRoundtripper) RoundTrip(req *http.Request) (*http.Response, e
 }
 
 // updateTokenEndpoint modifies the response header like:
-//    Www-Authenticate: Bearer realm="https://auth.docker.io/token",service="registry.docker.io"
+//
+//	Www-Authenticate: Bearer realm="https://auth.docker.io/token",service="registry.docker.io"
+//
 // to point to the https://host/token endpoint to force using local token
 // endpoint proxy.
 func updateTokenEndpoint(resp *http.Response, host string) {
