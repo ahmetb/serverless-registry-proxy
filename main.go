@@ -87,7 +87,6 @@ func main() {
 		log.Printf("found default credentials. %v", credentials)
 		tokenSource = credentials.TokenSource
 		log.Printf("Found token source")
-		// auth = authHeader("Basic " + base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("oauth2accesstoken:%s", token.AccessToken))))
 	}
 
 	mux := http.NewServeMux()
