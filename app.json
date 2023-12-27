@@ -9,5 +9,8 @@
       "description": "prefix for your images in the target registry (i.e. GCP project ID)",
       "required": false
     }
+  },
+  "options": {
+    "allow-unauthenticated": true
   }
 }
